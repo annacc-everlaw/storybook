@@ -1,10 +1,10 @@
 import { Context, createContext } from 'react';
 import { window as globalWindow } from 'global';
 
-import type { DocsContextProps } from '@storybook/preview-web';
+import type { DocsContextProps, ModernDocsContextProps } from '@storybook/preview-web';
 import type { AnyFramework } from '@storybook/csf';
 
-export type { DocsContextProps };
+export type { DocsContextProps, ModernDocsContextProps };
 
 // We add DocsContext to window. The reason is that in case DocsContext.ts is
 // imported multiple times (maybe once directly, and another time from a minified bundle)

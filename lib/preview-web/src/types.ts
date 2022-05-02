@@ -1,11 +1,11 @@
+import { createContext } from 'react';
+
 import type {
   StoryId,
   StoryName,
   AnyFramework,
   StoryContextForLoaders,
   ComponentTitle,
-  Args,
-  Globals,
 } from '@storybook/csf';
 import type { Story } from '@storybook/store';
 import { PreviewWeb } from './PreviewWeb';
@@ -27,16 +27,22 @@ export interface DocsContextProps<TFramework extends AnyFramework = AnyFramework
    */
   mdxStoryNameToKey?: Record<string, string>;
   mdxComponentAnnotations?: any;
-
-  // These keys are deprecated and will be removed in v7
-  /** @deprecated */
-  kind?: ComponentTitle;
-  /** @deprecated */
-  story?: StoryName;
-  /** @deprecated */
-  args?: Args;
-  /** @deprecated */
-  globals?: Globals;
-  /** @deprecated */
-  parameters?: Globals;
 }
+
+// FIXME -- should we change the above to legacy?
+export interface ModernDocsContextProps<TFramework extends AnyFramework = AnyFramework> {
+  id: StoryId;
+  title: ComponentTitle;
+  name: StoryName;
+  storyIdByRef: (ref: any) => StoryId;
+
+  // FIXME: do we still want these?
+  componentStories: () => Story<TFramework>[];
+  loadStory: (id: StoryId) => Promise<Story<TFramework>>;
+
+  renderStoryToElement: PreviewWeb<TFramework>['renderStoryToElement'];
+  getStoryContext: (story: Story<TFramework>) => StoryContextForLoaders<TFramework>;
+}
+
+// FIXME -- we can't have a dependency on react here
+export const ModernDocsContext = createContext<ModernDocsContextProps>(null);

@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import type { StoryId, AnyFramework } from '@storybook/csf';
 import type { Story } from '@storybook/store';
 
-import { DocsContextProps } from './DocsContext';
+import { DocsContextProps, ModernDocsContextProps } from './DocsContext';
 
 export function useStory<TFramework extends AnyFramework = AnyFramework>(
   storyId: StoryId,
-  context: DocsContextProps<TFramework>
+  context: DocsContextProps<TFramework> | ModernDocsContextProps<TFramework>
 ): Story<TFramework> | void {
   const stories = useStories([storyId], context);
   return stories && stories[0];
@@ -14,7 +14,7 @@ export function useStory<TFramework extends AnyFramework = AnyFramework>(
 
 export function useStories<TFramework extends AnyFramework = AnyFramework>(
   storyIds: StoryId[],
-  context: DocsContextProps<TFramework>
+  context: DocsContextProps<TFramework> | ModernDocsContextProps<TFramework>
 ): (Story<TFramework> | void)[] {
   const initialStoriesById = context.componentStories().reduce((acc, story) => {
     acc[story.id] = story;

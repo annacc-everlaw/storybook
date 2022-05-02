@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { AnyFramework } from '@storybook/csf';
 import { ModuleExports, Story } from '@storybook/store';
 
-import { DocsContextProps } from './types';
+import { ModernDocsContextProps, DocsContextProps, ModernDocsContext } from './types';
 import { NoDocs } from './NoDocs';
 
 export function renderLegacyDocs<TFramework extends AnyFramework>(
@@ -17,7 +17,7 @@ export function renderLegacyDocs<TFramework extends AnyFramework>(
 
 export function renderDocs<TFramework extends AnyFramework>(
   exports: ModuleExports,
-  docsContext: DocsContextProps<TFramework>,
+  docsContext: ModernDocsContextProps<TFramework>,
   element: HTMLElement,
   callback: () => void
 ) {
@@ -56,11 +56,13 @@ async function renderLegacyDocsAsync<TFramework extends AnyFramework>(
 
 async function renderDocsAsync<TFramework extends AnyFramework>(
   exports: ModuleExports,
-  docsContext: DocsContextProps<TFramework>,
+  docsContext: ModernDocsContextProps<TFramework>,
   element: HTMLElement
 ) {
-  // FIXME -- is this at all correct?
-  const DocsContainer = ({ children }: { children: ReactElement }) => <>{children}</>;
+  console.log('rendering DocsContainer', docsContext);
+  const DocsContainer = ({ children }: { children: ReactElement }) => (
+    <ModernDocsContext.Provider value={docsContext}>{children}</ModernDocsContext.Provider>
+  );
 
   const Page = exports.default;
 

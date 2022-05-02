@@ -15,6 +15,7 @@ import { StoryId, toId, storyNameFromExport, StoryAnnotations, AnyFramework } fr
 import { Story as StoryType } from '@storybook/store';
 import { addons } from '@storybook/addons';
 import Events from '@storybook/core-events';
+import { ModernDocsContext, ModernDocsContextProps } from '@storybook/preview-web';
 
 import { CURRENT_SELECTION } from './types';
 import { DocsContext, DocsContextProps } from './DocsContext';
@@ -36,6 +37,7 @@ type StoryDefProps = {
 
 type StoryRefProps = {
   id?: string;
+  of?: any;
 };
 
 type StoryImportProps = {
@@ -54,8 +56,17 @@ export const lookupStoryId = (
     storyNameFromExport(mdxStoryNameToKey[storyName])
   );
 
-export const getStoryId = (props: StoryProps, context: DocsContextProps): StoryId => {
-  const { id } = props as StoryRefProps;
+export const getStoryId = (
+  props: StoryProps,
+  context: DocsContextProps,
+  modernContext: ModernDocsContextProps
+): StoryId => {
+  const { id, of } = props as StoryRefProps;
+
+  if (of) {
+    return modernContext.storyIdByRef(of);
+  }
+
   const { name } = props as StoryDefProps;
   const inputId = id === CURRENT_SELECTION ? context.id : id;
   return inputId || lookupStoryId(name, context);
@@ -64,7 +75,7 @@ export const getStoryId = (props: StoryProps, context: DocsContextProps): StoryI
 export const getStoryProps = <TFramework extends AnyFramework>(
   { height, inline }: StoryProps,
   story: StoryType<TFramework>,
-  context: DocsContextProps<TFramework>,
+  context: DocsContextProps<TFramework> | ModernDocsContextProps<TFramework>,
   onStoryFnCalled: () => void
 ): PureStoryProps => {
   const { name: storyName, parameters } = story;
@@ -121,11 +132,14 @@ function makeGate(): [Promise<void>, () => void] {
 
 const Story: FunctionComponent<StoryProps> = (props) => {
   const context = useContext(DocsContext);
+  const modernContext = useContext<ModernDocsContextProps>(ModernDocsContext);
   const channel = addons.getChannel();
   const storyRef = useRef();
-  const storyId = getStoryId(props, context);
-  const story = useStory(storyId, context);
+  const storyId = getStoryId(props, context, modernContext);
+  const story = useStory(storyId, context || modernContext);
   const [showLoader, setShowLoader] = useState(true);
+
+  console.log(storyId, story);
 
   useEffect(() => {
     let cleanup: () => void;
@@ -145,7 +159,7 @@ const Story: FunctionComponent<StoryProps> = (props) => {
     return <StorySkeleton />;
   }
 
-  const storyProps = getStoryProps(props, story, context, onStoryFnRan);
+  const storyProps = getStoryProps(props, story, context || modernContext, onStoryFnRan);
   if (!storyProps) {
     return null;
   }

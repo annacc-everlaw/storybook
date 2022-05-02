@@ -5,7 +5,7 @@ import { Channel } from '@storybook/addons';
 import { DOCS_RENDERED } from '@storybook/core-events';
 
 import { Render, RenderType } from './StoryRender';
-import type { DocsContextProps } from './types';
+import type { DocsContextProps, ModernDocsContextProps } from './types';
 
 export class DocsRender<TFramework extends AnyFramework> implements Render<TFramework> {
   public type: RenderType = 'docs';
@@ -22,7 +22,7 @@ export class DocsRender<TFramework extends AnyFramework> implements Render<TFram
 
   private canvasElement?: HTMLElement;
 
-  private context?: DocsContextProps;
+  private context?: ModernDocsContextProps | DocsContextProps;
 
   public disableKeyListeners = false;
 
@@ -56,16 +56,13 @@ export class DocsRender<TFramework extends AnyFramework> implements Render<TFram
     return this.preparing;
   }
 
-  async renderToElement(
-    canvasElement: HTMLElement,
+  async legacyDocsContext(
     renderStoryToElement: DocsContextProps['renderStoryToElement']
-  ) {
-    this.canvasElement = canvasElement;
-
+  ): Promise<DocsContextProps> {
     const { id, title, name } = this.entry;
     const csfFile: CSFFile<TFramework> = await this.store.loadCSFFileByStoryId(this.id);
 
-    this.context = {
+    return {
       id,
       title,
       name,
@@ -79,9 +76,44 @@ export class DocsRender<TFramework extends AnyFramework> implements Render<TFram
           ...this.store.getStoryContext(renderedStory),
           viewMode: 'docs' as ViewMode,
         } as StoryContextForLoaders<TFramework>),
-      // Put all the storyContext fields onto the docs context for back-compat
-      ...(!global.FEATURES?.breakingChangesV7 && this.store.getStoryContext(this.story)),
     };
+  }
+
+  docsContext(
+    renderStoryToElement: DocsContextProps['renderStoryToElement']
+  ): ModernDocsContextProps {
+    const { id, title, name } = this.entry;
+
+    return {
+      id,
+      title,
+      name,
+
+      storyIdByRef: (ref: any) => this.store.storyIdByRef({ ref }),
+
+      componentStories: () => [],
+      loadStory: (storyId: StoryId) => this.store.loadStory({ storyId }),
+
+      renderStoryToElement,
+      getStoryContext: (renderedStory: Story<TFramework>) =>
+        ({
+          ...this.store.getStoryContext(renderedStory),
+          viewMode: 'docs' as ViewMode,
+        } as StoryContextForLoaders<TFramework>),
+    };
+  }
+
+  async renderToElement(
+    canvasElement: HTMLElement,
+    renderStoryToElement: DocsContextProps['renderStoryToElement']
+  ) {
+    this.canvasElement = canvasElement;
+
+    if (this.legacy) {
+      this.context = await this.legacyDocsContext(renderStoryToElement);
+    } else {
+      this.context = this.docsContext(renderStoryToElement);
+    }
 
     return this.render();
   }
@@ -93,12 +125,18 @@ export class DocsRender<TFramework extends AnyFramework> implements Render<TFram
     const renderer = await import('./renderDocs');
 
     if (this.legacy) {
-      renderer.renderLegacyDocs(this.story, this.context, this.canvasElement, () =>
-        this.channel.emit(DOCS_RENDERED, this.id)
+      renderer.renderLegacyDocs(
+        this.story,
+        this.context as DocsContextProps,
+        this.canvasElement,
+        () => this.channel.emit(DOCS_RENDERED, this.id)
       );
     } else {
-      renderer.renderDocs(this.exports, this.context, this.canvasElement, () =>
-        this.channel.emit(DOCS_RENDERED, this.id)
+      renderer.renderDocs(
+        this.exports,
+        this.context as ModernDocsContextProps,
+        this.canvasElement,
+        () => this.channel.emit(DOCS_RENDERED, this.id)
       );
     }
   }
